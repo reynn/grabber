@@ -1,26 +1,29 @@
 use crate::config;
+use chrono::Utc;
 use rawr::options::{ListingAnchor, ListingOptions};
 use serde_derive::{Deserialize, Serialize};
-use std::borrow::Borrow;
 use std::path::Path;
-use std::time::SystemTime;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserLock {
     pub file_name: String,
     pub name: Option<String>,
     pub last_update_name: Option<String>,
-    pub timestamp: Option<SystemTime>,
+    #[serde(skip)]
+    pub timestamp: Option<chrono::DateTime<Utc>>,
 }
 
 impl std::fmt::Display for UserLock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[User Lock ({})] last update [{:#?}] full_name {}.",
-            self.name.clone().unwrap_or("none".into()),
-            self.timestamp.clone().unwrap_or(SystemTime::now()),
-            self.last_update_name.clone().unwrap_or("".into()),
+            "[User Lock ({})] last update [{:?}] full_name {}.",
+            self.name.clone().unwrap_or_else(|| "none".into()),
+            self.timestamp
+                .clone()
+                .unwrap_or_else(|| Utc::now())
+                .to_rfc3339(),
+            self.last_update_name.clone().unwrap_or_else(|| "".into()),
         )
     }
 }
@@ -33,11 +36,14 @@ impl From<&str> for UserLock {
 
 impl UserLock {
     pub fn get(config: &config::AppConfig, username: &str) -> Self {
-        let user_lock_file = Path::new(config.borrow().output_path.as_str())
-            .join(username)
-            .join(".user_lock");
-        if !user_lock_file.as_path().exists() {
-            println!("[User Lock ({})] file does not exist", username);
+        let user_lock_base = Path::new(&config.output_path.as_str()).join(username);
+        let user_lock_file = user_lock_base.join(".user_lock");
+        if !user_lock_base.exists() {
+            println!(
+                "[User Lock ({})] parent dir ({}) doesn't exist",
+                username,
+                user_lock_base.display()
+            );
             std::fs::create_dir_all(user_lock_file.parent().unwrap()).unwrap();
         }
         println!(
@@ -77,7 +83,7 @@ impl UserLock {
     }
 
     pub fn save(&mut self) -> Result<(), std::io::Error> {
-        self.timestamp = Some(SystemTime::now());
+        self.timestamp = Some(Utc::now());
         let toml_out = toml::to_string(&self).unwrap_or_else(|err| {
             println!("Failed to serialize to TOML [{}]", err);
             String::new()
@@ -97,4 +103,3 @@ impl UserLock {
         }
     }
 }
-

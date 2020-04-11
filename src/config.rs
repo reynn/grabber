@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use std::error::Error;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Default, Deserialize, Serialize)]
 pub struct AppConfig {
     pub client_id: String,
     pub client_secret: String,
@@ -12,11 +12,11 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn new(file_name: &str) -> Result<Self, &dyn Error>{
-        let conf: Self = AppConfig::from(
-            std::fs::read_to_string(file_name)
-                .expect("Failed to open file").as_str()
-        );
+    pub fn new(file_name: &str) -> Result<Self, &dyn Error> {
+        let conf: Self = std::fs::read_to_string(file_name)
+            .expect("Failed to open file")
+            .as_str()
+            .into();
         Ok(conf)
     }
 }
@@ -25,7 +25,11 @@ impl std::fmt::Debug for AppConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let client_id = &self.client_id;
         let username = &self.username;
-        write!(f, "AppConfig(ClientID: {}, Username: {})", client_id, username)
+        write!(
+            f,
+            "AppConfig(ClientID: {}, Username: {})",
+            client_id, username
+        )
     }
 }
 
@@ -48,9 +52,6 @@ mod tests {
             password = "hello-password"
         "#;
         let conf = AppConfig::from(contents);
-        assert_eq!(
-            conf.username,
-            "test-user"
-        )
+        assert_eq!(conf.username, "test-user")
     }
 }

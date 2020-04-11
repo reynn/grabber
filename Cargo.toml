@@ -1,14 +1,15 @@
 [package]
 name = "grabber"
 version = "0.1.0"
-authors = ["reynn <224374+reynn@users.noreply.github.com>"]
+authors = [
+  "reynn <224374+reynn@users.noreply.github.com>"
+]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-rawr = { path = "../rawr" }
-chrono = "*"
+rawr = { git = "https://github.com/reynn/rawr", branch = "master" }
+reqwest = { version = "*", features = ["blocking"] }
+chrono = "0.4.11"
 toml = "0.5"
 serde_derive = "1.0.106"
 serde = "1.0.106"
