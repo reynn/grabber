@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 rawr = { git = "https://github.com/reynn/rawr", branch = "master" }
+clap = { git = "https://github.com/clap-rs/clap/" }
 reqwest = { version = "*", features = ["blocking"] }
 chrono = "0.4.11"
 toml = "0.5"
