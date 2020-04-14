@@ -1,9 +1,6 @@
 use rawr::structures::submission::Submission;
 use reqwest::Url;
-use std::error::Error;
-use std::fs::File;
-use std::io;
-use std::path::Path;
+use std::{error::Error, fs::File, io, path::Path};
 
 #[derive(Debug)]
 pub struct Downloadable {
@@ -16,8 +13,8 @@ impl Downloadable {
     pub fn download(&self, out_path: &Path) -> Result<(), Box<dyn Error>> {
         let out_path = &out_path.join(&self.user);
         let output_file = &out_path.join(&self.url.path()[1..]);
-        println!("[Download (url)] {}", self.url);
-        println!("[Download (output_file): {:#?}", &output_file);
+        info!("[Download (url)] {}", self.url);
+        info!("[Download (output_file): {:#?}", &output_file);
         let mut resp = reqwest::blocking::get(self.url.as_ref())?;
         let mut out_file = File::create(&output_file)?;
         match io::copy(&mut resp, &mut out_file) {

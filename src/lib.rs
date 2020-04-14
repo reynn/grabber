@@ -1,49 +1,52 @@
-use rawr::prelude::*;
-use rawr::structures::submission::Submission;
-use std::error::Error;
-use std::path::Path;
+#[macro_use]
+extern crate log;
+
+use rawr::{prelude::*, structures::submission::Submission};
+use std::{error::Error, path::Path};
 
 pub mod config;
-pub mod downloader;
-pub mod errors;
-pub mod user_lock;
-pub mod filters;
+mod downloader;
+mod errors;
+mod filters;
+mod user_lock;
 
 use downloader::Downloadable;
 use user_lock::UserLock;
 
 pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
-    let client = RedditClient::new(
-        "reddit-grabber(rust)",
+    let auth = if config.password.is_empty() {
+        AnonymousAuthenticator::new()
+    } else {
         PasswordAuthenticator::new(
             config.client_id.as_str(),
             config.client_secret.as_str(),
             config.username.as_str(),
             config.password.as_str(),
-        ),
-    )?;
+        )
+    };
+
+    let client = RedditClient::new("reddit-grabber(rust)", auth)?;
 
     let base_out_path = Path::new(config.output_path.as_str());
 
-    println!(
+    info!(
         "[Configuration (output_path)]: {}",
         &base_out_path.display()
     );
-    println!("[Configuration (client_id)]: {}", &config.client_id);
-    println!("[Configuration (username)]: {}", &config.username);
+    info!("[Configuration (client_id)]: {}", &config.client_id);
+    info!("[Configuration (username)]: {}", &config.username);
 
     if let Some(users) = &config.users {
         for user in users.iter() {
             let user = client.user(user);
             let mut user_lock = UserLock::get(&config, user.name.as_str());
-            println!("{}", &user_lock);
-            println!("[Search] user {}", user.name);
+            info!("[Search] user {}", user.name);
             let list_opts = user_lock.get_list_opts();
             match user.submissions(list_opts) {
                 Ok(listings) => {
                     let listings = listings
                         .filter(filters::filter_domains)
-                        .map(|l| Submission::from(l))
+                        .map(Submission::from)
                         .collect::<Vec<_>>();
 
                     if listings.is_empty() {
@@ -57,12 +60,12 @@ pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
                         let mut d = Downloadable::from(&list_item);
                         d.user = user.name.clone();
                         if let Err(e) = d.download(&base_out_path) {
-                            eprintln!("Failed to download file: {:?}", e);
+                            error!("Failed to download file: {:?}", e);
                         };
                     }
                 }
                 Err(e) => {
-                    eprintln!(
+                    error!(
                         "[Error] while getting data for user ({}) [{}]",
                         user.name, e
                     );

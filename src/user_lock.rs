@@ -21,7 +21,7 @@ impl std::fmt::Display for UserLock {
             self.name.clone().unwrap_or_else(|| "none".into()),
             self.timestamp
                 .clone()
-                .unwrap_or_else(|| Utc::now())
+                .unwrap_or_else(Utc::now)
                 .format("%Y-%m-%d (%H:%M:%S)"),
             self.last_update_name.clone().unwrap_or_else(|| "".into()),
         )
@@ -39,7 +39,7 @@ impl UserLock {
         let user_lock_base = Path::new(&config.output_path.as_str()).join(username);
         let user_lock_file = user_lock_base.join(".user_lock");
         if !user_lock_base.exists() {
-            println!(
+            info!(
                 "[User Lock ({})] parent dir ({}) doesn't exist",
                 username,
                 user_lock_base.display()
@@ -69,8 +69,10 @@ impl UserLock {
                 };
 
                 if let Err(save_error) = this.save() {
-                    eprintln!("failed to save the initial user_lock {}", save_error);
-                }
+                    error!("failed to save the initial user_lock {}", save_error);
+                };
+
+                info!("{}", &this);
 
                 this
             }
@@ -80,7 +82,7 @@ impl UserLock {
     pub fn save(&mut self) -> Result<(), std::io::Error> {
         self.timestamp = Some(Utc::now());
         let toml_out = toml::to_string(&self).unwrap_or_else(|err| {
-            println!("Failed to serialize to TOML [{}]", err);
+            error!("Failed to serialize to TOML [{}]", err);
             String::new()
         });
 
