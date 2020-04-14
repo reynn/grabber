@@ -17,12 +17,12 @@ impl std::fmt::Display for UserLock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[User Lock ({})] last update [{:?}] full_name {}.",
+            "[User Lock ({})] last update [{}] full_name {}.",
             self.name.clone().unwrap_or_else(|| "none".into()),
             self.timestamp
                 .clone()
                 .unwrap_or_else(|| Utc::now())
-                .to_rfc3339(),
+                .format("%Y-%m-%d (%H:%M:%S)"),
             self.last_update_name.clone().unwrap_or_else(|| "".into()),
         )
     }
@@ -46,11 +46,6 @@ impl UserLock {
             );
             std::fs::create_dir_all(user_lock_file.parent().unwrap()).unwrap();
         }
-        println!(
-            "[User Lock ({})] filename: {}",
-            username,
-            user_lock_file.display()
-        );
 
         // try to read the user_lock file
         // If successful we use toml parser to load the values into our struct

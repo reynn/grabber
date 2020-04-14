@@ -1,6 +1,5 @@
 use rawr::prelude::*;
 use rawr::structures::submission::Submission;
-use reqwest::Url;
 use std::error::Error;
 use std::path::Path;
 
@@ -8,6 +7,7 @@ pub mod config;
 pub mod downloader;
 pub mod errors;
 pub mod user_lock;
+pub mod filters;
 
 use downloader::Downloadable;
 use user_lock::UserLock;
@@ -42,32 +42,17 @@ pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
             match user.submissions(list_opts) {
                 Ok(listings) => {
                     let listings = listings
-                        .filter(|l| match l.link_url() {
-                            Some(url) => {
-                                if let Ok(url) = Url::parse(url.as_str()) {
-                                    match url.domain() {
-                                        Some(domain) => {
-                                            // println!("domain: {}", domain);
-                                            match domain {
-                                                "i.redd.it" | "i.imgur.com" => true,
-                                                _ => false,
-                                            }
-                                        }
-                                        _ => false,
-                                    }
-                                } else {
-                                    false
-                                }
-                            }
-                            _ => false,
-                        })
-                        .map(|l| l as Submission)
+                        .filter(filters::filter_domains)
+                        .map(|l| Submission::from(l))
                         .collect::<Vec<_>>();
+
                     if listings.is_empty() {
                         continue;
-                    }
+                    };
+
                     user_lock.last_update_name = Some(listings[0].name().into());
                     user_lock.save()?;
+
                     for list_item in listings.into_iter() {
                         let mut d = Downloadable::from(&list_item);
                         d.user = user.name.clone();
