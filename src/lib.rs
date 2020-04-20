@@ -1,40 +1,37 @@
 #[macro_use]
 extern crate log;
 
-use rawr::{prelude::*, structures::submission::Submission};
-use std::{error::Error, path::Path};
-
 pub mod config;
-mod downloader;
+mod download;
 mod errors;
 mod filters;
 mod user_lock;
 
-use downloader::Downloadable;
+use download::Downloadable;
+use rawr::{prelude::*, structures::submission::Submission};
+use std::{error::Error, path::Path};
 use user_lock::UserLock;
 
 pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
-    let auth = if config.password.is_empty() {
+    let auth = if config.is_anonymous() {
         AnonymousAuthenticator::new()
     } else {
         PasswordAuthenticator::new(
-            config.client_id.as_str(),
-            config.client_secret.as_str(),
-            config.username.as_str(),
-            config.password.as_str(),
+            &config.client_id(),
+            &config.client_secret(),
+            &config.username(),
+            &config.password(),
         )
     };
 
-    let client = RedditClient::new("reddit-grabber(rust)", auth)?;
+    let client = RedditClient::new("grabber-rs", auth)?;
 
     let base_out_path = Path::new(config.output_path.as_str());
 
-    info!(
-        "[Configuration (output_path)]: {}",
-        &base_out_path.display()
-    );
-    info!("[Configuration (client_id)]: {}", &config.client_id);
-    info!("[Configuration (username)]: {}", &config.username);
+    info!("[Config (output_path)]: {}", &base_out_path.display());
+
+    let download_manager = download::Manager::new();
+    download_manager.handle_downloads(base_out_path.into());
 
     if let Some(users) = &config.users {
         for user in users.iter() {
@@ -59,16 +56,17 @@ pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
                     for list_item in listings.into_iter() {
                         let mut d = Downloadable::from(&list_item);
                         d.user = user.name.clone();
-                        if let Err(e) = d.download(&base_out_path) {
-                            error!("Failed to download file: {:?}", e);
-                        };
+                        if let Err(e) = download_manager.add_to_queue(d) {
+                            error!(
+                                "Failed to add item to queue ({}) error: {}",
+                                list_item.link_url().unwrap_or_else(|| { "none".into() }),
+                                e
+                            );
+                        }
                     }
                 }
                 Err(e) => {
-                    error!(
-                        "[Error] while getting data for user ({}) [{}]",
-                        user.name, e
-                    );
+                    error!("failed to get data for user [{}] error({})", user.name, e);
                 }
             };
         }

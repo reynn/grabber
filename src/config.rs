@@ -2,15 +2,46 @@ use serde_derive::{Deserialize, Serialize};
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub client_id: String,
-    pub client_secret: String,
-    pub username: String,
-    pub password: String,
+    pub client_id: Option<String>,
+    pub client_secret: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub output_path: String,
     pub users: Option<Vec<String>>,
 }
 
 impl AppConfig {
+    pub fn client_id(&self) -> String {
+        if self.client_id.is_some() {
+            self.client_id.clone().unwrap()
+        } else {
+            "".to_string()
+        }
+    }
+    pub fn client_secret(&self) -> String {
+        if self.client_secret.is_some() {
+            self.client_secret.clone().unwrap()
+        } else {
+            "".to_string()
+        }
+    }
+    pub fn username(&self) -> String {
+        if self.username.is_some() {
+            self.username.clone().unwrap()
+        } else {
+            "".to_string()
+        }
+    }
+    pub fn password(&self) -> String {
+        if self.password.is_some() {
+            self.password.clone().unwrap()
+        } else {
+            "".to_string()
+        }
+    }
+    pub fn is_anonymous(&self) -> bool {
+        self.username().is_empty() && self.password().is_empty()
+    }
     pub fn new(file_name: &str) -> Result<Self, std::io::Error> {
         match std::fs::read_to_string(file_name) {
             Ok(content) => Ok(content.as_str().into()),
@@ -24,13 +55,15 @@ impl AppConfig {
 
 impl std::fmt::Debug for AppConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let client_id = &*self.client_id;
-        let username = &*self.username;
-        write!(
-            f,
-            "AppConfig(ClientID: {}, Username: {})",
-            client_id, username
-        )
+        match self.is_anonymous() {
+            true => write!(f, "AppConfig(Anonymous)"),
+            false => write!(
+                f,
+                "AppConfig(ClientID: {}, Username: {})",
+                self.client_id(),
+                self.username()
+            ),
+        }
     }
 }
 
@@ -56,6 +89,7 @@ mod tests {
             password = "hello-password"
         "#;
         let conf = AppConfig::from(contents);
-        assert_eq!(conf.username, "test-user")
+        let uname: String = conf.username.unwrap_or("".into());
+        assert_eq!(uname, "test-user")
     }
 }

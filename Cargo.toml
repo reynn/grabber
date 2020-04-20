@@ -1,18 +1,18 @@
 [package]
 name = "grabber"
 version = "0.1.0"
+edition = "2018"
 authors = [
   "reynn <224374+reynn@users.noreply.github.com>"
 ]
-edition = "2018"
 
 [dependencies]
-rawr = { git = "https://github.com/reynn/rawr", branch = "master" }
+rawr = { git = "https://github.com/reynn/rawr", branch = "reqwest" }
 clap = { git = "https://github.com/clap-rs/clap/" }
-reqwest = { version = "*", features = ["blocking"] }
-log = "0.4"
-simplelog = "^0.7.4"
+reqwest = "0.10.4"
+log = "0.4.8"
+simplelog = "0.7.5"
 chrono = "0.4.11"
-toml = "0.5"
+toml = "0.5.6"
 serde_derive = "1.0.106"
 serde = "1.0.106"
