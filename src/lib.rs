@@ -7,15 +7,22 @@ mod errors;
 mod filters;
 mod user_lock;
 
-use download::Downloadable;
-use rawr::{prelude::*, structures::submission::Submission};
 use std::{error::Error, path::Path};
-use user_lock::UserLock;
+
+use rawr::{prelude::*, structures::submission::Submission};
+
+use crate::{download::Downloadable, user_lock::UserLock};
 
 pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
     let auth = if config.is_anonymous() {
+        debug!("Creating an anonymous authenticator");
         AnonymousAuthenticator::new()
     } else {
+        debug!(
+            "Creating a password authenticator [client({}), username({})]",
+            &config.client_id(),
+            &config.username()
+        );
         PasswordAuthenticator::new(
             &config.client_id(),
             &config.client_secret(),
@@ -29,9 +36,6 @@ pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
     let base_out_path = Path::new(config.output_path.as_str());
 
     info!("[Config (output_path)]: {}", &base_out_path.display());
-
-    let download_manager = download::Manager::new();
-    download_manager.handle_downloads(base_out_path.into());
 
     if let Some(users) = &config.users {
         for user in users.iter() {
@@ -56,12 +60,8 @@ pub fn start(config: config::AppConfig) -> Result<(), Box<dyn Error>> {
                     for list_item in listings.into_iter() {
                         let mut d = Downloadable::from(&list_item);
                         d.user = user.name.clone();
-                        if let Err(e) = download_manager.add_to_queue(d) {
-                            error!(
-                                "Failed to add item to queue ({}) error: {}",
-                                list_item.link_url().unwrap_or_else(|| { "none".into() }),
-                                e
-                            );
+                        if let Err(d_err) = d.download(&base_out_path) {
+                            error!("Failed to download: {:?}", d_err)
                         }
                     }
                 }

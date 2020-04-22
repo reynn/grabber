@@ -1,38 +1,6 @@
 use rawr::structures::submission::Submission;
 use reqwest::Url;
-use std::{error::Error, fs::File, io, path::Path, sync::mpsc};
-
-#[derive(Debug)]
-pub struct Manager {
-    input_channel: mpsc::Sender<Downloadable>,
-    out_channel: mpsc::Receiver<Downloadable>,
-}
-
-impl Manager {
-    pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel();
-
-        Manager {
-            input_channel: tx,
-            out_channel: rx,
-        }
-    }
-
-    pub fn handle_downloads(&self, output_file: &Path) {
-        for downloadable in &self.out_channel {
-            info!("[Download Manager] Downloading {:?}", downloadable);
-            if let Err(e) = downloadable.download(output_file) {
-                error!("[Download Manager] Failed to download: {:?}", e);
-            } else {
-                info!("[Downloadable] {} -> {:?}", downloadable.url, &output_file);
-            }
-        }
-    }
-
-    pub fn add_to_queue(&self, d: Downloadable) -> Result<(), mpsc::SendError<Downloadable>> {
-        self.input_channel.send(d)
-    }
-}
+use std::{error::Error, fs::File, io, path::Path};
 
 #[derive(Debug)]
 pub struct Downloadable {
@@ -58,7 +26,7 @@ impl Downloadable {
 }
 
 impl From<&Submission<'_>> for Downloadable {
-    fn from(submission: &Submission) -> Self {
+    fn from(submission: &Submission<'_>) -> Self {
         let sub_url = Url::parse(&submission.link_url().unwrap().as_str()).unwrap();
         Self {
             url: sub_url,

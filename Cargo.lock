@@ -769,8 +769,8 @@ dependencies = [
 [[package]]
 name = "rawr"
 version = "0.3.0"
-source = "git+https://github.com/reynn/rawr?branch=reqwest#add4de50ea5bb4b35f0399db25cda68ea59687ce"
 dependencies = [
+ "log",
  "reqwest",
  "serde",
  "serde_derive",

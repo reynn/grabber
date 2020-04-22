@@ -7,7 +7,8 @@ authors = [
 ]
 
 [dependencies]
-rawr = { git = "https://github.com/reynn/rawr", branch = "reqwest" }
+# rawr = { git = "https://github.com/reynn/rawr", branch = "reqwest" }
+rawr = { path = "../rawr" }
 clap = { git = "https://github.com/clap-rs/clap/" }
 reqwest = "0.10.4"
 log = "0.4.8"

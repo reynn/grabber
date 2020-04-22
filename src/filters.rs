@@ -1,7 +1,7 @@
 use rawr::structures::submission::Submission;
 use reqwest::Url;
 
-pub fn filter_domains(s: &Submission) -> bool {
+pub fn filter_domains(s: &Submission<'_>) -> bool {
     match s.link_url() {
         Some(url) => {
             if let Ok(url) = Url::parse(url.as_str()) {
