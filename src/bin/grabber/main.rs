@@ -1,5 +1,5 @@
 use clap::Clap;
-use log::error;
+use log::{debug, error, info};
 use simplelog::*;
 use std::process::exit;
 
@@ -14,8 +14,9 @@ struct Opts {
     verbose: bool,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     let opts: Opts = Opts::parse();
+    let start = std::time::Instant::now();
 
     let log_level = match opts.verbose {
         true => {
@@ -35,15 +36,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ])
     .unwrap();
 
-    // if TermLogger::init(log_level, Config::default(), TerminalMode::Mixed).is_err() {
-    //     warn!("Failed to configure TermLogger");
-    //     SimpleLogger::init(log_level, Config::default()).expect("No logger should be already set");
-    // };
-
     let config = AppConfig::new(opts.config.as_str()).unwrap_or_else(|err| {
         error!("Failed to create app configuration [{}]", err);
         exit(2);
     });
 
-    grabber::start(config)
+    debug!(
+        "[grabber (config)] took {} ms",
+        &start.elapsed().as_millis()
+    );
+
+    match grabber::start(config) {
+        Ok(_) => info!(
+            "grabber complete, took {} seconds",
+            &start.elapsed().as_secs()
+        ),
+        Err(err) => {
+            eprintln!("Failed to run grabber loop {}", err);
+            std::process::exit(2);
+        }
+    }
 }

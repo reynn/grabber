@@ -4,27 +4,37 @@ use rawr::options::{ListingAnchor, ListingOptions};
 use serde_derive::{Deserialize, Serialize};
 use std::path::Path;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize)]
 pub struct UserLock {
     pub file_name: String,
     pub name: Option<String>,
     pub last_update_name: Option<String>,
+    #[serde(default)]
+    ignore: bool,
     #[serde(skip)]
     pub timestamp: Option<chrono::DateTime<Utc>>,
 }
 
 impl std::fmt::Display for UserLock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[User Lock ({})] last update [{}] full_name {}.",
-            self.name.clone().unwrap_or_else(|| "none".into()),
-            self.timestamp
-                .clone()
-                .unwrap_or_else(Utc::now)
-                .format("%Y-%m-%d (%H:%M:%S)"),
-            self.last_update_name.clone().unwrap_or_else(|| "".into()),
-        )
+        if self.ignore {
+            write!(
+                f,
+                "User {} is being ignored due to failures",
+                &self.name.clone().unwrap_or_else(|| "none".into())
+            )
+        } else {
+            write!(
+                f,
+                "User {} last updated, {}, at post id {}.",
+                self.name.clone().unwrap_or_else(|| "none".into()),
+                self.timestamp
+                    .clone()
+                    .unwrap_or_else(Utc::now)
+                    .format("%Y-%m-%d (%H:%M:%S)"),
+                self.last_update_name.clone().unwrap_or_else(|| "".into()),
+            )
+        }
     }
 }
 
@@ -35,6 +45,23 @@ impl From<&str> for UserLock {
 }
 
 impl UserLock {
+    fn new(username: String, lock_file_name: String) -> Self {
+        Self {
+            file_name: lock_file_name,
+            name: Some(username),
+            ignore: false,
+            last_update_name: None,
+            timestamp: None,
+        }
+    }
+
+    /// Gets a user lock file based on provided username and app config
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    ///
+    /// ```
     pub fn get(config: &config::AppConfig, username: &str) -> Self {
         let user_lock_base = Path::new(&config.output_path.as_str()).join(username);
         let user_lock_file = user_lock_base.join(".user_lock");
@@ -53,30 +80,41 @@ impl UserLock {
         match std::fs::read_to_string(user_lock_file.as_path()) {
             Ok(contents) => match toml::from_str(contents.as_str()) {
                 Ok(res) => res,
-                Err(_) => Self {
-                    file_name: String::from(user_lock_file.to_str().unwrap()),
-                    name: Some(String::from(username)),
-                    last_update_name: None,
-                    timestamp: None,
-                },
+                Err(e) => {
+                    error!("Failed to parse user lock file {:?}", e);
+                    Self::new(
+                        username.to_string(),
+                        String::from(user_lock_file.to_str().unwrap_or_else(|| "")),
+                    )
+                }
             },
-            Err(_) => {
-                let mut this = Self {
-                    file_name: String::from(user_lock_file.to_str().unwrap()),
-                    name: Some(String::from(username)),
-                    last_update_name: None,
-                    timestamp: None,
-                };
+            Err(e) => {
+                error!(
+                    "Failed to load user lock file for {} [{}]",
+                    username,
+                    e.to_string()
+                );
+                let mut this = Self::new(
+                    username.to_string(),
+                    String::from(user_lock_file.to_str().unwrap_or_else(|| "")),
+                );
 
                 if let Err(save_error) = this.save() {
                     error!("failed to save the initial user_lock {}", save_error);
                 };
 
-                info!("{}", &this);
-
                 this
             }
         }
+    }
+
+    pub fn ignore(&mut self) -> Result<(), std::io::Error> {
+        self.ignore = true;
+        self.save()
+    }
+
+    pub fn is_ignored(&self) -> bool {
+        self.ignore
     }
 
     pub fn save(&mut self) -> Result<(), std::io::Error> {

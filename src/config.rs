@@ -1,5 +1,17 @@
 use serde_derive::{Deserialize, Serialize};
 
+macro_rules! getter {
+    ($var:ident, $ret:ty) => {
+        pub fn $var(&self) -> $ret {
+            if self.$var.is_some() {
+                self.$var.clone().unwrap()
+            } else {
+                "".into()
+            }
+        }
+    }
+}
+
 #[derive(Default, Deserialize, Serialize)]
 pub struct AppConfig {
     pub client_id: Option<String>,
@@ -11,44 +23,19 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn client_id(&self) -> String {
-        if self.client_id.is_some() {
-            self.client_id.clone().unwrap()
-        } else {
-            "".to_string()
-        }
-    }
-    pub fn client_secret(&self) -> String {
-        if self.client_secret.is_some() {
-            self.client_secret.clone().unwrap()
-        } else {
-            "".to_string()
-        }
-    }
-    pub fn username(&self) -> String {
-        if self.username.is_some() {
-            self.username.clone().unwrap()
-        } else {
-            "".to_string()
-        }
-    }
-    pub fn password(&self) -> String {
-        if self.password.is_some() {
-            self.password.clone().unwrap()
-        } else {
-            "".to_string()
-        }
-    }
+    getter!(client_id, String);
+    getter!(client_secret, String);
+    getter!(username, String);
+    getter!(password, String);
+
     pub fn is_anonymous(&self) -> bool {
         self.username().is_empty() && self.password().is_empty()
     }
+
     pub fn new(file_name: &str) -> Result<Self, std::io::Error> {
         match std::fs::read_to_string(file_name) {
             Ok(content) => Ok(content.as_str().into()),
-            Err(err) => {
-                Err(err)
-                // format!("Failed to open {} please ensure the file exists and is readable.", file_name).into()
-            }
+            Err(err) => Err(err),
         }
     }
 }
