@@ -1,5 +1,7 @@
 /target
 .idea/
 
-.grabber.toml
-grabber.log
+# Ignore any of the app configs created
+.grabber*.toml
+# Ignore the log files that may generate
+grabber*.log

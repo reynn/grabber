@@ -1,55 +1,52 @@
 use serde_derive::{Deserialize, Serialize};
 
-macro_rules! getter {
-    ($var:ident, $ret:ty) => {
-        pub fn $var(&self) -> $ret {
-            if self.$var.is_some() {
-                self.$var.clone().unwrap()
-            } else {
-                "".into()
-            }
+error_chain! {
+    errors {
+        IgnoredUser(u: String) {
+            description("User is being ignored")
+            display("User [{}] is being ignored", u)
         }
+    }
+    foreign_links {
+        Io(std::io::Error);
+        TOMLSerializeError(toml::ser::Error);
+        TOMLDeserializeError(toml::de::Error);
     }
 }
 
+#[serde(default)]
 #[derive(Default, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub client_id: Option<String>,
-    pub client_secret: Option<String>,
-    pub username: Option<String>,
-    pub password: Option<String>,
+    pub client_id: String,
+    pub client_secret: String,
+    pub username: String,
+    pub password: String,
     pub output_path: String,
-    pub users: Option<Vec<String>>,
+    pub users: Vec<String>,
+    pub friend_manage: bool,
 }
 
 impl AppConfig {
-    getter!(client_id, String);
-    getter!(client_secret, String);
-    getter!(username, String);
-    getter!(password, String);
-
     pub fn is_anonymous(&self) -> bool {
-        self.username().is_empty() && self.password().is_empty()
+        self.username.is_empty() && self.password.is_empty()
     }
 
-    pub fn new(file_name: &str) -> Result<Self, std::io::Error> {
-        match std::fs::read_to_string(file_name) {
-            Ok(content) => Ok(content.as_str().into()),
-            Err(err) => Err(err),
-        }
+    pub fn new(file_name: &str) -> Result<Self> {
+        let content = std::fs::read_to_string(file_name)?;
+        Ok(content.as_str().into())
     }
 }
 
 impl std::fmt::Debug for AppConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.is_anonymous() {
-            true => write!(f, "AppConfig(Anonymous)"),
-            false => write!(
+        if self.is_anonymous() {
+            write!(f, "AppConfig(Anonymous)")
+        } else {
+            write!(
                 f,
                 "AppConfig(ClientID: {}, Username: {})",
-                self.client_id(),
-                self.username()
-            ),
+                self.client_id, self.username
+            )
         }
     }
 }
@@ -76,7 +73,7 @@ mod tests {
             password = "hello-password"
         "#;
         let conf = AppConfig::from(contents);
-        let uname: String = conf.username.unwrap_or("".into());
+        let uname = conf.username;
         assert_eq!(uname, "test-user")
     }
 }
