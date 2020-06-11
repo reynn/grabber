@@ -4,14 +4,15 @@ extern crate error_chain;
 extern crate log;
 
 use clap::Clap;
-use simplelog::*;
-use std::process::exit;
-
 use grabber::config::AppConfig;
+use log::LevelFilter;
+use std::process::exit;
 
 error_chain! {
     foreign_links {
         Io(std::io::Error);
+        FernInitLogging(fern::InitError);
+        FernSetupLogging(log::SetLoggerError);
         TOMLSerializeError(toml::ser::Error);
         TOMLDeserializeError(toml::de::Error);
         RawrError(rawr::errors::APIError);
@@ -27,7 +28,25 @@ struct Opts {
     verbose: bool,
 }
 
-fn main() {
+fn setup_logging(level: LevelFilter) -> Result<()> {
+    Ok(fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(level)
+        .chain(std::io::stdout())
+        .chain(fern::log_file("grabber.log")?)
+        .apply()?)
+}
+
+#[tokio::main]
+async fn main() {
     let opts: Opts = Opts::parse();
     let start = std::time::Instant::now();
 
@@ -38,31 +57,17 @@ fn main() {
         LevelFilter::Info
     };
 
-    CombinedLogger::init(vec![
-        TermLogger::new(log_level, Config::default(), TerminalMode::Mixed).unwrap(),
-        WriteLogger::new(
-            LevelFilter::Info,
-            Config::default(),
-            std::fs::File::create("grabber.log").unwrap(),
-        ),
-    ])
-    .unwrap();
+    setup_logging(log_level).unwrap();
 
-    let mut config = AppConfig::new(opts.config.as_str()).unwrap_or_else(|err| {
+    let config = AppConfig::new(opts.config.as_str()).unwrap_or_else(|err| {
         error!("Failed to create app configuration [{}]", err);
         exit(2);
     });
 
-    debug!(
-        "[grabber (config)] took {} ms",
-        &start.elapsed().as_millis()
-    );
+    debug!("[grabber (config)] took {} ms", &start.elapsed().as_millis());
 
-    match grabber::start(&mut config) {
-        Ok(_) => info!(
-            "grabber complete, took {} seconds",
-            &start.elapsed().as_secs()
-        ),
+    match grabber::start(&config).await {
+        Ok(_) => info!("grabber complete, took {} seconds", &start.elapsed().as_secs()),
         Err(err) => {
             eprintln!("Failed to run grabber loop {}", err);
             std::process::exit(2);
