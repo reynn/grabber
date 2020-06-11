@@ -2,9 +2,10 @@ pub mod user_lock;
 
 use crate::{
     collectors::{errors::*, Collector, reddit::user_lock::UserLock},
-    download::{DownloadItem, send_download_item},
+    download::DownloadItem,
     config::AppConfig,
 };
+use crossbeam_channel::Sender;
 use rawr::prelude::*;
 
 pub struct RedditCollector<'a> {
@@ -41,7 +42,7 @@ impl<'a> RedditCollector<'a> {
 
 #[async_trait::async_trait]
 impl<'a> Collector for RedditCollector<'a> {
-    async fn execute(&self) -> Result<()> {
+    async fn execute(&self, send_chan: Sender<DownloadItem>) -> Result<()> {
         info!("Collecting Reddit user posts");
         let mut user_list = self.config.reddit.users.clone();
 
@@ -53,6 +54,7 @@ impl<'a> Collector for RedditCollector<'a> {
             let reddit_user = self.reddit_client.user(user_name);
             let mut lock_file = UserLock::get(&self.config, user_name);
             if lock_file.is_ignored() {
+                warn!("Skipping {} due to ignore", user_name);
                 continue;
             }
             if let Ok(submissions) = reddit_user.submissions(lock_file.get_list_opts()) {
@@ -60,7 +62,7 @@ impl<'a> Collector for RedditCollector<'a> {
                     info!("{}: {}", user_name, submission.title());
                     let mut download_item: DownloadItem = submission.into();
                     download_item.sub_path = Some(user_name.into());
-                    send_download_item(download_item)?;
+                    send_chan.send(download_item)?;
                 }
             } else {
                 lock_file.ignore()?;

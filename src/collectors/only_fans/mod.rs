@@ -1,6 +1,9 @@
-use super::errors::*;
-
-use crate::{collectors::Collector, config::AppConfig};
+use crate::{
+    collectors::{errors::*, Collector},
+    download::DownloadItem,
+    config::AppConfig,
+};
+use crossbeam_channel::Sender;
 
 #[derive(Debug)]
 pub struct OnlyFansCollector<'a> {
@@ -19,8 +22,11 @@ impl<'a> OnlyFansCollector<'a> {
 
 #[async_trait::async_trait]
 impl<'a> Collector for OnlyFansCollector<'a> {
-    async fn execute(&self) -> Result<()> {
+    async fn execute(&self, _send_chan: Sender<DownloadItem>) -> Result<()> {
         info!("Collecting items from Only Fans");
+        for of_user in self.config.only_fans.users.iter() {
+          info!("Collecting data for {}", of_user);
+        }
         Ok(())
     }
 }

@@ -10,7 +10,7 @@ pub mod config;
 mod download;
 mod filters;
 
-use crate::{collectors::only_fans::OnlyFansCollector, collectors::reddit::RedditCollector, download::DownloadManager};
+use crate::{collectors::only_fans::OnlyFansCollector,collectors::fantia_jp::FantiaCollector, collectors::reddit::RedditCollector, download::DownloadManager};
 use futures::join;
 
 error_chain! {
@@ -26,24 +26,30 @@ error_chain! {
 }
 
 pub async fn start<'a>(config: &'a config::AppConfig) -> Result<()> {
+    info!("Config: {:?}", config);
     let download_manager = DownloadManager::new(config.output_path.as_str(), 50);
     let download_async = download_manager.download_items();
 
-    let reddit = RedditCollector::new(&config)?;
+    // let reddit = RedditCollector::new(&config)?;
+    // let red_collect = collectors::run_collector(reddit, download_manager.send_chan.clone());
+
+    let fantia = FantiaCollector::new(&config)?;
+    let fantia_collect = collectors::run_collector(fantia, download_manager.send_chan.clone());
+
     let only_fans = OnlyFansCollector::new(&config)?;
+    let of_collect = collectors::run_collector(only_fans, download_manager.send_chan.clone());
 
-    let red_collect = collectors::run_collector(reddit);
-    let of_collect = collectors::run_collector(only_fans);
-
-    let (red_complete, of_complete) = join!(red_collect, of_collect);
-    if let Err(red_err) = red_complete {
-        error!("Failed to run Reddit collector {}", red_err);
+    let (fantia_complete, of_complete) = join!(fantia_collect, of_collect);
+    if let Err(fantia_err) = fantia_complete {
+        error!("Failed to run Fantia collector {}", fantia_err);
     }
     if let Err(of_err) = of_complete {
+        // if let Err(of_err) = of_complete {
         error!("Failed to run OnlyFans collector {}", of_err);
     }
 
     info!("Collectors completed successfully");
+    info!("Waiting for all downloads to complete...");
     download_async.await?;
     info!("Downloads complete");
 

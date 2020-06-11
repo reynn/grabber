@@ -17,6 +17,7 @@ error_chain! {
         DownloadError(download::Error, download::ErrorKind);
     }
     foreign_links {
+        CrossbeamSendError(crossbeam_channel::SendError<download::DownloadItem>);
         Io(std::io::Error);
         TOMLSerializeError(toml::ser::Error);
         TOMLDeserializeError(toml::de::Error);

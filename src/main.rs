@@ -19,10 +19,15 @@ error_chain! {
     }
 }
 
+#[cfg(debug_assertions)]
+static GRABBER_DEFAULT: &str = ".grabber.dev.toml";
+#[cfg(not(debug_assertions))]
+static GRABBER_DEFAULT: &str = ".grabber.toml";
+
 #[derive(Debug, Clone, Default, Clap)]
 #[clap(version = "0.1.0", author = "reynn")]
 struct Opts {
-    #[clap(short = "c", long = "config", default_value = ".grabber.toml")]
+    #[clap(short = "c", long = "config", default_value = GRABBER_DEFAULT)]
     config: String,
     #[clap(short = "v", long = "verbose")]
     verbose: bool,
@@ -64,7 +69,7 @@ async fn main() {
         exit(2);
     });
 
-    debug!("[grabber (config)] took {} ms", &start.elapsed().as_millis());
+    debug!("took {} ms to load config", &start.elapsed().as_millis());
 
     match grabber::start(&config).await {
         Ok(_) => info!("grabber complete, took {} seconds", &start.elapsed().as_secs()),
