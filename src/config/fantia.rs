@@ -1,9 +1,10 @@
 use serde_derive::{Deserialize, Serialize};
-use crate::config::errors::*;
 
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct Fantia {
-  pub fan_clubs: Vec<String>,
+    pub output_path: Option<String>,
+    pub session_id: String,
+    pub fan_clubs: Vec<String>,
 }
 
 impl std::fmt::Debug for Fantia {

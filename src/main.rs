@@ -15,7 +15,6 @@ error_chain! {
         FernSetupLogging(log::SetLoggerError);
         TOMLSerializeError(toml::ser::Error);
         TOMLDeserializeError(toml::de::Error);
-        RawrError(rawr::errors::APIError);
     }
 }
 

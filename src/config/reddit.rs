@@ -1,9 +1,9 @@
 use serde_derive::{Deserialize, Serialize};
-use crate::config::errors::*;
 
 #[serde(default)]
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct Reddit {
+    pub output_path: Option<String>,
     pub client_id: String,
     pub client_secret: String,
     pub username: String,
@@ -21,12 +21,14 @@ impl Reddit {
 impl std::fmt::Debug for Reddit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_anonymous() {
-            write!(f, "AppConfig(Anonymous)[users({})]", self.users.len())
+            write!(f, "Reddit(Anonymous)[users({})]", self.users.len())
         } else {
             write!(
                 f,
-                "AppConfig(ClientID: {}, Username: {})[users({})]",
-                self.client_id, self.username, self.users.len()
+                "Reddit(ClientID: {}, Username: {})[users({})]",
+                self.client_id,
+                self.username,
+                self.users.len()
             )
         }
     }

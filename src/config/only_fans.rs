@@ -1,20 +1,19 @@
 use serde_derive::{Deserialize, Serialize};
-use crate::config::errors::*;
 
 #[serde(default)]
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct OnlyFans {
+    pub output_path: Option<String>,
     pub app_token: String,
     pub auth_id: String,
     pub auth_hash: String,
     pub session_id: String,
-    pub fp: String,
     pub users: Vec<String>,
 }
 
 impl std::fmt::Debug for OnlyFans {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      write!(f, "Auth(id={})[users({})]", self.auth_id, self.users.len())
+        write!(f, "Auth(id={})[users({})]", self.auth_id, self.users.len())
     }
 }
 

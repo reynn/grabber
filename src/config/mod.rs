@@ -3,14 +3,23 @@ mod fantia;
 mod only_fans;
 mod reddit;
 
-use errors::*;
+use self::errors::*;
+use crate::collectors::Collector;
+
 use serde_derive::{Deserialize, Serialize};
 use std::{fs::read_to_string, process::exit};
 
 #[serde(default)]
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
-pub struct AppConfig {
+pub struct General {
     pub output_path: String,
+    pub collector_subfolders: bool,
+}
+
+#[serde(default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct AppConfig {
+    pub general: General,
     pub fantia: fantia::Fantia,
     pub only_fans: only_fans::OnlyFans,
     pub reddit: reddit::Reddit,
@@ -20,6 +29,10 @@ impl AppConfig {
     pub fn new(path: &str) -> Result<Self> {
         info!("Loading config from [{}]", path);
         Ok(read_to_string(path)?.as_str().into())
+    }
+
+    pub fn get_collector_outpath(&self, collector: impl Collector) -> Result<String> {
+        Ok(collector.get_name())
     }
 }
 
@@ -39,6 +52,7 @@ mod tests {
     #[test]
     fn test_toml_parse() {
         let contents = r#"
+
             [reddit]
             client_id = "the-base-client"
             client_secret = "super-secret"
