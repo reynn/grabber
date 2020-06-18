@@ -9,11 +9,16 @@ pub struct OnlyFans {
     pub auth_hash: String,
     pub session_id: String,
     pub users: Vec<String>,
+    pub enabled: bool,
 }
 
 impl std::fmt::Debug for OnlyFans {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Auth(id={})[users({})]", self.auth_id, self.users.len())
+        if self.enabled {
+            write!(f, "OnlyFans([Auth={}], [users({}])", self.auth_id, self.users.len())
+        } else {
+            write!(f, "OnlyFans(disabled)")
+        }
     }
 }
 

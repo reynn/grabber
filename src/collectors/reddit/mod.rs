@@ -1,14 +1,12 @@
 pub mod listing;
 pub mod user;
 
-use crate::{
-    collectors::{errors::*, Collector, user_lock::UserLock},
-    download::item::Item,
-    config::AppConfig,
-};
+use super::{Collect, user_lock::UserLock};
+use crate::{download::item::Item, config::AppConfig};
 
 use async_trait::async_trait;
 use crossbeam_channel::Sender;
+use anyhow::Result;
 
 pub struct RedditCollector {
     client: reqwest::Client,
@@ -22,17 +20,17 @@ impl std::fmt::Debug for RedditCollector {
 }
 
 impl RedditCollector {
-    pub fn new(config: &AppConfig) -> Result<Self> {
+    pub fn new(config: AppConfig) -> Result<Self> {
         Ok(Self {
-            config: config.clone(),
+            config: config,
             client: reqwest::Client::new(),
         })
     }
 }
 
 #[async_trait]
-impl Collector for RedditCollector {
-    async fn execute(&self, send_chan: Sender<Item>) -> Result<()> {
+impl Collect for RedditCollector {
+    async fn collect(&self, _send_chan: Sender<Item>) -> Result<()> {
         info!("Collecting Reddit user posts");
         let mut user_list = self.config.reddit.users.clone();
 
@@ -41,6 +39,8 @@ impl Collector for RedditCollector {
 
         for user_name in user_list.iter() {
             info!("Collecting posts for Reddit user {}", user_name);
+            debug!("{:#?}", self);
+            let _reddit_response = self.client.get("").send().await?;
             // let reddit_user = self.client.user(user_name);
             let lock_file = UserLock::get(&self.config, user_name, self.get_name().as_str());
             if lock_file.is_ignored() {
@@ -63,5 +63,8 @@ impl Collector for RedditCollector {
     }
     fn get_name(&self) -> String {
         String::from("Reddit Collector")
+    }
+    fn is_enabled(&self, conf: &AppConfig) -> bool {
+        conf.reddit.enabled
     }
 }

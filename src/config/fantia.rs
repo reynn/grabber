@@ -1,15 +1,21 @@
 use serde_derive::{Deserialize, Serialize};
 
+#[serde(default)]
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct Fantia {
     pub output_path: Option<String>,
     pub session_id: String,
     pub fan_clubs: Vec<String>,
+    pub enabled: bool,
 }
 
 impl std::fmt::Debug for Fantia {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Fantia[clubs({})]", self.fan_clubs.len())
+        if self.enabled {
+            write!(f, "Fantia([clubs={}])", self.fan_clubs.len())
+        } else {
+            write!(f, "Fantia(disabled)")
+        }
     }
 }
 

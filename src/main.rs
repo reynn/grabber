@@ -1,35 +1,43 @@
 #[macro_use]
-extern crate error_chain;
-#[macro_use]
 extern crate log;
 
 use clap::Clap;
-use grabber::config::AppConfig;
 use log::LevelFilter;
-use std::process::exit;
+use std::{process::exit, io::prelude::*};
+use anyhow::Result;
 
-error_chain! {
-    foreign_links {
-        Io(std::io::Error);
-        FernInitLogging(fern::InitError);
-        FernSetupLogging(log::SetLoggerError);
-        TOMLSerializeError(toml::ser::Error);
-        TOMLDeserializeError(toml::de::Error);
-    }
-}
+use grabber::config::AppConfig;
+
+static GRABBER_VERSION: &str = "0.1.0";
 
 #[cfg(debug_assertions)]
 static GRABBER_DEFAULT: &str = ".grabber.dev.toml";
 #[cfg(not(debug_assertions))]
 static GRABBER_DEFAULT: &str = ".grabber.toml";
 
-#[derive(Debug, Clone, Default, Clap)]
-#[clap(version = "0.1.0", author = "reynn")]
+#[derive(Debug, Clone, Clap)]
+#[clap(version = GRABBER_VERSION, author = "reynn <nic@reynn.dev>")]
 struct Opts {
-    #[clap(short = "c", long = "config", default_value = GRABBER_DEFAULT)]
+    #[clap(short, long, default_value = GRABBER_DEFAULT)]
     config: String,
-    #[clap(short = "v", long = "verbose")]
+    #[clap(short, long)]
     verbose: bool,
+    #[clap(subcommand)]
+    subcmd: Option<SubCommand>,
+}
+
+#[derive(Clap, Debug, Clone)]
+enum SubCommand {
+    #[clap(version = GRABBER_VERSION, author = "reynn <nic@reynn.dev>")]
+    Config(Config),
+}
+
+/// A subcommand for controlling testing
+#[derive(Clap, Debug, Clone, Default)]
+struct Config {
+    /// Print debug info
+    #[clap(short, default_value = GRABBER_DEFAULT)]
+    path: String,
 }
 
 fn setup_logging(level: LevelFilter) -> Result<()> {
@@ -54,27 +62,38 @@ async fn main() {
     let opts: Opts = Opts::parse();
     let start = std::time::Instant::now();
 
-    let log_level = if opts.verbose {
-        println!("turning on debug logging");
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
+    println!("opts :: {:#?}", opts);
+
+    let log_level = match opts.verbose {
+        true => LevelFilter::Debug,
+        false => LevelFilter::Info,
     };
 
     setup_logging(log_level).unwrap();
 
-    let config = AppConfig::new(opts.config.as_str()).unwrap_or_else(|err| {
-        error!("Failed to create app configuration [{}]", err);
-        exit(2);
-    });
+    match opts.subcmd {
+        Some(SubCommand::Config(c)) => {
+            let app_config = AppConfig::default();
+            let app_config = toml::to_string_pretty(&app_config).unwrap();
+            let mut out_file = std::fs::File::create(c.path).unwrap();
+            if let Err(err) = out_file.write(app_config.as_bytes()) {
+                eprintln!("Failed to create config: {}", err);
+                exit(2)
+            }
+        }
+        None => {
+            let config = AppConfig::new(opts.config.as_str()).unwrap_or_else(|err| {
+                error!("Failed to create app configuration [{}]", err);
+                exit(2);
+            });
 
-    debug!("took {} ms to load config", &start.elapsed().as_millis());
-
-    match grabber::start(&config).await {
-        Ok(_) => info!("grabber complete, took {} seconds", &start.elapsed().as_secs()),
-        Err(err) => {
-            eprintln!("Failed to run grabber loop {}", err);
-            std::process::exit(2);
+            match grabber::start(config).await {
+                Ok(_) => info!("grabber complete, took {} seconds", &start.elapsed().as_secs()),
+                Err(err) => {
+                    eprintln!("Failed to run grabber loop {}", err);
+                    std::process::exit(2);
+                }
+            }
         }
     }
 }

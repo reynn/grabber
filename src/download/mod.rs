@@ -1,12 +1,11 @@
+pub mod item;
+
+use self::item::Item;
+
 use reqwest::Client;
 use std::path::Path;
 use crossbeam_channel::{bounded, select, Sender, Receiver};
-
-pub mod errors;
-pub mod item;
-
-use errors::*;
-use item::Item;
+use anyhow::Result;
 
 #[derive(Debug)]
 pub struct Manager<'a> {

@@ -1,12 +1,10 @@
 use std::path::Path;
 
-use crate::{
-    config::AppConfig,
-    collectors::{errors::*, Collector, reddit::listing},
-};
+use crate::{config::AppConfig, collectors::reddit::listing};
 
 use serde_derive::{Deserialize, Serialize};
 use chrono::Utc;
+use anyhow::Result;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct UserLock {

@@ -1,13 +1,12 @@
-mod errors;
 mod fantia;
 mod only_fans;
 mod reddit;
 
-use self::errors::*;
-use crate::collectors::Collector;
+use crate::collectors::Collect;
 
 use serde_derive::{Deserialize, Serialize};
 use std::{fs::read_to_string, process::exit};
+use anyhow::Result;
 
 #[serde(default)]
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -31,7 +30,7 @@ impl AppConfig {
         Ok(read_to_string(path)?.as_str().into())
     }
 
-    pub fn get_collector_outpath(&self, collector: impl Collector) -> Result<String> {
+    pub fn get_collector_outpath(&self, collector: impl Collect) -> Result<String> {
         Ok(collector.get_name())
     }
 }

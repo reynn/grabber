@@ -1,13 +1,7 @@
 //! Detail the listing feature of Reddit
 
-error_chain! {
-    errors {
-        TypeParseError(id: String) {
-            description("Provided id does not have a valid type")
-            display("{} has an unknown or invalid type", id)
-        }
-    }
-}
+use anyhow::Result;
+use thiserror::Error;
 
 #[derive(Debug, Clone)]
 pub struct Options {
@@ -48,15 +42,21 @@ impl Type {
 
         println!("prefix: {:?}", type_prefix);
         match type_prefix {
-            "t1" => Ok(Self::Comment(String::from(type_id))),
-            "t2" => Ok(Self::Account(String::from(type_id))),
-            "t3" => Ok(Self::Link(String::from(type_id))),
-            "t4" => Ok(Self::Message(String::from(type_id))),
-            "t5" => Ok(Self::Subreddit(String::from(type_id))),
-            "t6" => Ok(Self::Award(String::from(type_id))),
-            _ => Err(ErrorKind::TypeParseError(String::from(full_type_id)).into()),
+            "t1" => Ok(Self::Comment(type_id.into())),
+            "t2" => Ok(Self::Account(type_id.into())),
+            "t3" => Ok(Self::Link(type_id.into())),
+            "t4" => Ok(Self::Message(type_id.into())),
+            "t5" => Ok(Self::Subreddit(type_id.into())),
+            "t6" => Ok(Self::Award(type_id.into())),
+            _ => Err(TypeParseError::InvalidType(full_type_id.into()).into()),
         }
     }
+}
+
+#[derive(Error, Debug)]
+pub enum TypeParseError {
+    #[error("The provided type {0} doesn't appear to be a valid listing type")]
+    InvalidType(String),
 }
 
 #[cfg(test)]

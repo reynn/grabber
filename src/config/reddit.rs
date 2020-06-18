@@ -10,6 +10,7 @@ pub struct Reddit {
     pub password: String,
     pub users: Vec<String>,
     pub friend_manage: bool,
+    pub enabled: bool,
 }
 
 impl Reddit {
@@ -20,16 +21,20 @@ impl Reddit {
 
 impl std::fmt::Debug for Reddit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_anonymous() {
-            write!(f, "Reddit(Anonymous)[users({})]", self.users.len())
+        if self.enabled {
+            if self.is_anonymous() {
+                write!(f, "Reddit([Auth=Anonymous], [users({})])", self.users.len())
+            } else {
+                write!(
+                    f,
+                    "Reddit([ClientID={}], [Username={}], [users={}])",
+                    self.client_id,
+                    self.username,
+                    self.users.len()
+                )
+            }
         } else {
-            write!(
-                f,
-                "Reddit(ClientID: {}, Username: {})[users({})]",
-                self.client_id,
-                self.username,
-                self.users.len()
-            )
+            write!(f, "Reddit(disabled)")
         }
     }
 }
