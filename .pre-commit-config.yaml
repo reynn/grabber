@@ -1,3 +1,5 @@
+default_language_version:
+  python: python3.8
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: master
@@ -6,3 +8,7 @@ repos:
       - id: trailing-whitespace
       - id: check-byte-order-marker
       - id: check-toml
+  - repo: https://github.com/reynn/rust-pre-commit
+    rev: master
+    hooks:
+      - id: cargo-nightly-format
