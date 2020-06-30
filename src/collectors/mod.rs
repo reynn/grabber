@@ -6,7 +6,7 @@ pub mod only_fans;
 pub mod reddit;
 pub mod user_lock;
 
-use crossbeam_channel::Sender;
+use async_channel::Sender;
 use async_trait::async_trait;
 use anyhow::Result;
 
@@ -25,7 +25,13 @@ impl Collectors {
                 info!("Collector {} is starting", collector.get_name());
                 let running_collector = collector.collect(send_chan.clone());
                 running_collectors.push(running_collector);
-                collector.collect(send_chan.clone()).await?;
+                if let Err(collector_error) = collector.collect(send_chan.clone()).await {
+                    error!(
+                        "Failed to run collect {} error: [{}]",
+                        collector.get_name(),
+                        collector_error
+                    );
+                }
             } else {
                 info!("Collector {} is not enabled", collector.get_name())
             }

@@ -5,3 +5,4 @@
 .grabber*.toml
 # Ignore the log files that may generate
 grabber*.log
+.cache/

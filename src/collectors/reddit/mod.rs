@@ -5,21 +5,21 @@ use super::{Collect, user_lock::UserLock};
 use crate::{download::item::Item, config::AppConfig};
 
 use async_trait::async_trait;
-use crossbeam_channel::Sender;
+use async_channel::Sender;
 use anyhow::Result;
 
-pub struct RedditCollector {
+pub struct Collector {
     client: reqwest::Client,
     config: AppConfig,
 }
 
-impl std::fmt::Debug for RedditCollector {
+impl std::fmt::Debug for Collector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "RedditCollector(Users({}))", self.config.reddit.users.len())
     }
 }
 
-impl RedditCollector {
+impl Collector {
     pub fn new(config: AppConfig) -> Result<Self> {
         Ok(Self {
             config: config,
@@ -29,7 +29,7 @@ impl RedditCollector {
 }
 
 #[async_trait]
-impl Collect for RedditCollector {
+impl Collect for Collector {
     async fn collect(&self, _send_chan: Sender<Item>) -> Result<()> {
         info!("Collecting Reddit user posts");
         let mut user_list = self.config.reddit.users.clone();

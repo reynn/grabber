@@ -62,8 +62,6 @@ async fn main() {
     let opts: Opts = Opts::parse();
     let start = std::time::Instant::now();
 
-    println!("opts :: {:#?}", opts);
-
     let log_level = match opts.verbose {
         true => LevelFilter::Debug,
         false => LevelFilter::Info,

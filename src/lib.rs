@@ -11,7 +11,7 @@ pub mod filters;
 use anyhow::Result;
 
 use crate::{
-    collectors::{Collectors, only_fans::OnlyFansCollector, fantia_jp::FantiaCollector, reddit::RedditCollector},
+    collectors::{Collectors, only_fans::Collector as ofc, fantia_jp::Collector as fc, reddit::Collector as rc},
     download::Manager,
 };
 
@@ -22,9 +22,9 @@ pub async fn start(config: config::AppConfig) -> Result<()> {
 
     let available_collectors = Collectors {
         collectors: vec![
-            Box::new(OnlyFansCollector::new(config.clone())?),
-            Box::new(FantiaCollector::new(config.clone())?),
-            Box::new(RedditCollector::new(config.clone())?),
+            Box::new(rc::new(config.clone())?),
+            Box::new(ofc::new(config.clone())?),
+            Box::new(fc::new(config.clone())?),
         ],
     };
 

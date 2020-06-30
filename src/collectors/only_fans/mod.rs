@@ -1,15 +1,15 @@
 use crate::{collectors::Collect, download::item::Item, config::AppConfig};
-use crossbeam_channel::Sender;
+use async_channel::Sender;
 use async_trait::async_trait;
 use anyhow::Result;
 
 #[derive(Debug)]
-pub struct OnlyFansCollector {
+pub struct Collector {
     client: reqwest::Client,
     config: AppConfig,
 }
 
-impl OnlyFansCollector {
+impl Collector {
     pub fn new(config: AppConfig) -> Result<Self> {
         Ok(Self {
             client: reqwest::Client::new(),
@@ -19,7 +19,7 @@ impl OnlyFansCollector {
 }
 
 #[async_trait]
-impl Collect for OnlyFansCollector {
+impl Collect for Collector {
     async fn collect(&self, _send_chan: Sender<Item>) -> Result<()> {
         for of_user in self.config.only_fans.users.iter() {
             info!("Collecting items for OnlyFans user {}", of_user);

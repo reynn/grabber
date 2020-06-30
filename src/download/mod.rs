@@ -4,7 +4,7 @@ use self::item::Item;
 
 use reqwest::Client;
 use std::path::Path;
-use crossbeam_channel::{bounded, select, Sender, Receiver};
+use async_channel::{bounded, Sender, Receiver};
 use anyhow::Result;
 
 #[derive(Debug)]
@@ -24,6 +24,7 @@ impl<'a> Default for Manager<'a> {
 
 impl<'a> Manager<'a> {
     pub fn new(path: &'a str, buff_size: usize) -> Self {
+        info!("Creating a channel bounded at {}", buff_size);
         let (s, r): (Sender<Item>, Receiver<Item>) = bounded(buff_size);
         Self {
             client: Client::new(),
@@ -35,17 +36,17 @@ impl<'a> Manager<'a> {
     }
 
     pub async fn download_items(&self) -> Result<()> {
-        loop {
-            select! {
-              recv(self.recv_chan) -> downloadable => {
-                  downloadable?.get(self.out_path, &self.client).await?;
-              },
-              default(std::time::Duration::from_secs(2)) => {
-                  info!("Timed out waiting for new downloadable");
-                  break
-              },
-            }
-        }
+        // loop {
+        // select! {
+        // recv(self.recv_chan) -> downloadable => {
+        // downloadable?.get(self.out_path, &self.client).await?;
+        // },
+        // default(std::time::Duration::from_secs(2)) => {
+        // info!("Timed out waiting for new downloadable");
+        // break
+        // },
+        // }
+        // }
         Ok(())
     }
 }
